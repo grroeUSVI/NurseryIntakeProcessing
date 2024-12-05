@@ -1,0 +1,257 @@
+---
+title: "Black Mangrove Site Comparisons"
+output: html_document
+date: "2024-11-14"
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readr)
+library(lubridate)#as date function tells things they are dates
+
+AVGE <- read_csv("AVGE Intake Data11.14.24.csv")
+
+unique(AVGE$CollectionSite)
+# "VBSP"                       NA                           "CP"                        
+# [4] "STEER Basin"                "AL"                         "SRHB"                      
+# [7] "SRBB"                       "GP"                         "UNK"                       
+#[10] "STEER Fringe"               "LS"                         "RB"                        
+#[13] "STEER BASIN"                "SG"                         "NUMBERS WERE IN 600'S, NOW"
+#[16] "STEER FRINGE"               "LAMESHUR"                   "VESSUP SALT POND"          
+#[19] "SALT RIVER POND"            "SARI"                       "Vessup Salt Pond"          
+#[22] "na"                         "STEER"                      "Altona Lagoon"             
+#[25] "Hemmers Bay"                "Bio Bay"                    "Great Pond"                
+#[28] "Oasis Cove, Vessup Bay"     "Southgate"                  "SALT RIVER"                
+#[31] "Vessup" 
+
+
+#want all the site IDs to say the name of the site
+
+AVGE<-AVGE%>%
+  mutate(CollectionSite=recode(CollectionSite,
+    "VBSP"= "Vessup Bay Salt Pond",
+    "VESSUP SALT POND"= "Vessup Bay Salt Pond",
+    "Vessup Salt Pond"= "Vessup Bay Salt Pond",
+    "STEER BASIN"= "STEER Basin",
+    "STEER FRINGE"= "STEER Fringe",
+    "SRBB"= "Salt River Bio Bay",
+    "Bio Bay"= "Salt River Bio Bay",
+    "Hemmers Bay"= "Salt River Hemmers Bay",
+    "SRHB"= "Salt River Hemmers Bay",
+    "AL"= "Altona Lagoon",
+    "GP"= "Great Pond",
+    "LS"= "Lameshur",
+    "LAMESHUR"= "Lameshur",
+    "SARI"= "Salt River",
+    "SALT RIVER"= "Salt River",
+    "SALT RIVER POND"= "Salt River Pond",
+    "CP"= "Compass Point",
+    "SG"="Southgate",
+    "RB"="Reef Bay"))
+
+unique(AVGE$CollectionSite)
+
+#remove props from unknown sites and na
+AVGE<-AVGE%>%
+  filter(!(CollectionSite=="na"))%>%
+  filter(!(CollectionSite=="UNK"))%>%
+  filter(!(CollectionSite=="NUMBERS WERE IN 600'S, NOW"))%>%
+  filter(!(CollectionSite=="Oasis Cove, Vessup Bay"))
+#remove all rows where collection site isn't recorded (NA in dataframe)
+AVGE<-AVGE%>%
+  filter(!is.na(CollectionSite))
+  
+#going to remove the three props that say oasis cove vessup bay, and NUMBERS WERE IN 600'S, NOW
+
+#check to make sure all sites have a collection site
+AVGEcheck<-AVGE%>%
+  filter(CollectionSite==NA|CollectionSite=="na"|CollectionSite=="UNK")
+
+#use lubridate to so my dates are recognized as dates and I can pull the year out
+AVGE$CollectionDate<-mdy(AVGE$CollectionDate)
+
+AVGE<-AVGE%>%
+  mutate(CollectionYear=year(CollectionDate))
+```
+
+
+##Total Number of Trees Planted Each Year
+```{r Visualize Number of Trees Planted Each Year}
+
+#six trees don't have a collected date, but they were planted in 2021, going to change collection year to 2021
+
+AVGE$CollectionYear <- ifelse(is.na(AVGE$CollectionYear), 2021, AVGE$CollectionYear)
+#how many props planted each year?
+YearCount<-AVGE%>%
+  group_by(CollectionYear)%>%
+  summarise(count=n())
+
+YearCount$CollectionYear<-as.factor(YearCount$CollectionYear)
+#colors
+yearcolors<-c("darkolivegreen3", "tan4","darkgreen","tomato4")
+
+YearPlot<-YearCount%>%
+  ggplot(aes(x=CollectionYear,y=count, color=CollectionYear, fill=CollectionYear))+
+  geom_col(position="dodge",stat="identity", width=0.7)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_manual(values=yearcolors)+
+  scale_color_manual(values=yearcolors)+
+  xlab("Collection Year")+
+  ylab("Number of Propagules Planted")
+
+YearPlot
+
+```
+
+
+
+## Total Number of trees planted from each site each year
+```{r Visualizations}
+
+#six trees don't have a collected date, but they were planted in 2021, going to change collection year to 2021
+
+AVGE$CollectionYear <- ifelse(is.na(AVGE$CollectionYear), 2021, AVGE$CollectionYear)
+
+#want to know how many props were collected from each site each year
+SiteCount<-AVGE%>%
+  group_by(CollectionYear,CollectionSite)%>%
+  summarise(count=n())
+
+#make factor
+SiteCount$CollectionYear<-as.factor(SiteCount$CollectionYear)
+
+#colors
+yearcolors<-c("darkolivegreen3", "tan4","darkgreen","tomato4")
+
+CountPlot<-SiteCount%>%
+  ggplot(aes(x=CollectionSite,y=count,color=CollectionYear, fill=CollectionYear))+
+  geom_col(position="dodge",stat="identity", width=0.7)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_manual(values=yearcolors)+
+  scale_color_manual(values=yearcolors)+
+  xlab("Collection Site")+
+  ylab("Number of Propagules Planted")
+
+CountPlot
+
+#going to combine all Salt Pond and steer Locations and replot 
+
+SiteCountSitesMerged<-SiteCount%>%
+  mutate(CollectionSite=recode(CollectionSite,
+    "Salt River Bio Bay"= "Salt River",
+    "Salt River Hemmers Bay"= "Salt River",
+    "Salt River Pond"= "Salt River",
+    "STEER Basin"= "STEER",
+    "STEER Fringe"= "STEER",
+    ))
+
+MergedSites<-SiteCountSitesMerged%>%
+  ggplot(aes(x=CollectionSite,y=count,color=CollectionYear, fill=CollectionYear))+
+  geom_col(position="dodge",stat="identity", width=0.7)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_manual(values=yearcolors)+
+  scale_color_manual(values=yearcolors)+
+  xlab("Collection Site")+
+  ylab("Number of Propagules Planted")
+
+MergedSites
+
+
+```
+
+```{r}
+library(ggforce)#for sinaplots
+
+#merging all steer and salt river into one site for analysis
+AVGEmerged<-AVGE%>%
+   mutate(CollectionSite=recode(CollectionSite,
+    "Salt River Bio Bay"= "Salt River",
+    "Salt River Hemmers Bay"= "Salt River",
+    "Salt River Pond"= "Salt River",
+    "STEER Basin"= "STEER",
+    "STEER Fringe"= "STEER",
+    ))
+
+#rename mass column because it things Mass(g) is a function
+colnames(AVGEmerged)[colnames(AVGEmerged) == "Mass(g)"] <- "Mass"
+
+#reclassify Mass and Collection Site
+AVGEmerged$Mass<-as.numeric(AVGEmerged$Mass)
+AVGEmerged$CollectionSite<-as.factor(AVGEmerged$CollectionSite)
+
+
+#want to plot
+mass21<-AVGEmerged%>%
+  filter(CollectionYear==2021)%>%
+  ggplot(aes(x=CollectionSite, y=Mass, color=CollectionSite))+#setting my x and y values,
+  geom_violin()+#
+    geom_sina()+#adds all the dots to the violin plot needs ggforce library
+    geom_boxplot(width=0.1, color="black", alpha=0.5)+
+  ggtitle("Propagule Mass Across Sites in 2021")+
+  ylab("Propagule Mass (g)")+
+  xlab("Collection Site")+
+  theme(legend.position="none", plot.title = element_text(hjust = 0.5), panel.background =   element_rect(fill = "white", colour = "grey50"))+#no legend, centered title, no background
+  scale_color_manual(name = "Site", values = c("darkgreen","salmon4", "olivedrab","orange4","springgreen4","chartreuse4"))#sets the colors manually of the dots, and outlines of violin plots
+
+mass21
+  
+
+
+```
+
+
+
+```{r}
+#function to plot, 
+    #input the dataframe
+    #collection year
+    #what y value you want to use ie:L/W/M
+    #title in quotes
+    #and y label in quotes
+
+PropViolinPlot<-function(df,collectionyear,YVal,title, ylab){
+ 
+   #filter the dataframe
+  filterdata<-df%>%
+    filter(CollectionYear==collectionyear)
+ 
+   #color options
+  plotcolors<-c("darkgreen","salmon4", "olivedrab","orange4","springgreen4","goldenrod4")
+ 
+   #plot things
+  plot<-filterdata%>%
+    ggplot(aes(x=CollectionSite, y = .data[[YVal]], color=CollectionSite))+#setting my x and y values, 
+  geom_violin()+#
+    geom_sina()+#adds all the dots to the violin plot needs ggforce library
+    geom_boxplot(width=0.1, color="black", alpha=0.5)+
+  ggtitle(title)+
+  ylab(ylab)+
+  xlab("Collection Site")+
+  theme(legend.position="none", plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "white", colour = "grey50"))+#no legend, centered title, no background
+    scale_color_manual(name = "Site", values = plotcolors)
+  
+  #return the plot
+  return(plot)
+  }#sets the colors manually of the dots, and outlines of violin plots
+
+
+#Mass 2021
+f2021mass<-PropViolinPlot(AVGEmerged,2021,"Mass","Propagule Mass Across Sites in 2021","Propagule Mass (g)")
+
+f2021mass
+
+#Width 2021
+AVGEmerged$Width<-as.numeric(AVGEmerged$Width)
+
+f2021width<-PropViolinPlot(AVGEmerged,2021,"Width","Propagule Width Across Sites in 2021","Propagule Width (cm)")
+
+f2021width
+
+#Length 2021
+f2021length<-PropViolinPlot(AVGEmerged,2021,"Propagule Length(cm)","Propagule Length Across Sites in 2021","Propagule Length (cm)")
+
+```
+
