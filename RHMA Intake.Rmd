@@ -6,7 +6,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
+```{r Load DF, Fix Data Class}
 library(readr)
 
 #load the dataframe
@@ -14,9 +14,9 @@ RHMA<- read_csv("C:/Users/900116901/Desktop/Nursery Intake Processing/Master Nur
 
 #uploaded as tibble, changing to df
 RHMA<-as.data.frame(RHMA)
-RHMA$`Mass (g)`<-as.numeric(RHMA$`Mass (g)`)
-RHMA$`Width (mm)`<-as.numeric(RHMA$`Width (mm)`)
-RHMA$`total length (cm)`<-as.numeric(RHMA$`total length (cm)`)
+RHMA$`Mass (g)`<-as.numeric(RHMA$`Mass (g)`)#reclassifying Mass
+RHMA$`Width (mm)`<-as.numeric(RHMA$`Width (mm)`)#reclassify Width
+RHMA$`total length (cm)`<-as.numeric(RHMA$`total length (cm)`)#reclassify length
 
 #look a the structure
 str(RHMA)
@@ -41,12 +41,9 @@ unique(RHMA$`Collection Site`)
 [37] "OASIS COVE"        "MDL"               "VESSUP BAY"     
 [40] "VBSP"  
 
-
-
-```{r}
-
+We have a lot of sites that have different names for the same place, fixing
+```{r Remove Unknown Sites, and Fix Misnamed Sites}
 library(tidyverse)
-
 
 #ask around the lab if people can ID these sites, we can add them back in 
 
@@ -100,36 +97,40 @@ RHMA<-RHMA%>%
 unique(RHMA$`Collection Site`)
 ```
 
-[1] "Oasis Cove"       "Compass Point"    "Altona Lagoon"   
- [4] "Salt River"       "Perserverace Bay" "Annabergh Bay"   
- [7] "Brewers Bay"      "Magens Bay"       "STEER"           
-[10] "Perserverance"    "Vessup Bay"       "Mandahl Bay"
+ [1] "Oasis Cove"       "Compass Point"    "Altona Lagoon"    "Salt River"      
+ [5] "Perserverace Bay" "Brewers Bay"      "Magens Bay"       "STEER"           
+ [9] "Annabergh Bay"    "Vessup Bay"       "Mandahl Bay" 
 
 
-```{r}
-library(lubridate)
+```{r Total Number of Trees Planted Per Year}
+library(lubridate)#helpful package for classifying dates/times in r
 
-RHMA$`Collection Date`<-mdy(RHMA$`Collection Date`)
+RHMA$`Collection Date`<-mdy(RHMA$`Collection Date`)#tell R that CollectionDate is a date
 
-unique(RHMA$`Collection Date`)
+unique(RHMA$`Collection Date`)#what are the unique values
 
+#remove the NA
 RHMA<-RHMA%>%
   filter(!is.na(`Collection Date`))
 
+#double check that NA is removed
 unique(RHMA$`Collection Date`)
 
+#use lubridate function to take the year out of the collection date, so we can group props by year
 RHMA<-RHMA%>%
   mutate(CollectionYear=year(`Collection Date`))
 
 unique(RHMA$CollectionYear)
 
 RHMA<-RHMA%>%
-    filter(!(CollectionYear==2002))
+    filter(!(CollectionYear==2002))#the nursery did not exist in 2002, removing this
 
-YearCount<-RHMA%>%
-  group_by(CollectionYear)%>%
+#want to know how many trees planted each year
+YearCount<-RHMA%>% #dataframe, and then
+  group_by(CollectionYear)%>% 
   summarise(count=n())
 
+#plot the total number of trees planted each year
 YearPlot<-YearCount%>%
  ggplot(aes(x=CollectionYear, y=count))+
   geom_col()
@@ -141,11 +142,12 @@ YearCount$CollectionYear<-as.factor(YearCount$CollectionYear)
 
 yearcolors<-c("darkolivegreen3", "tan4","darkgreen","tomato4","orange")
 
+#making plot pretty
 YearPlot<-YearCount%>%
   ggplot(aes(x=CollectionYear,y=count, color=CollectionYear, fill=CollectionYear))+
-  geom_col(position="dodge", width=0.7)+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  scale_fill_manual(values=yearcolors)+
+  geom_col(position="dodge", width=0.7)+#position=dodge, makes it so bars are next to each other
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+#this makes the x axis labels on an angle
+  scale_fill_manual(values=yearcolors)+#makes the 
   scale_color_manual(values=yearcolors)+
   xlab("Collection Year")+
   ylab("Number of Propagules Planted")
@@ -162,9 +164,10 @@ SiteCount<-RHMA%>%
   group_by(CollectionYear,`Collection Site`)%>%
   summarise(count=n())
 
+#make year a factor so can use as categorical variable in bar plot
 SiteCount$CollectionYear<-as.factor(SiteCount$CollectionYear)
 
-
+#plot!
 YearPlot<-SiteCount%>%
   ggplot(aes(x=`Collection Site`,y=count, color=CollectionYear, fill=CollectionYear))+
   geom_col(position="dodge", width=0.7)+
@@ -180,13 +183,11 @@ YearPlot
 ```
 
 
-We have only data from all 5 years from compass and oasis so want to compare mass for these two sites
+We have only data from all 5 years from compass, oasis, and steer so want to compare mass for these two sites
 
-is theere a significant difference in mass of props collected between these two sites in 2021
-```{r}
-
-
-
+is there a significant difference in mass of props collected between these two sites in 2021?
+```{r Compare Compass Point and Oasis Cove}
+#filter for 2021 Only looking at compass point, oasis cove and steer
 Compare<-RHMA%>%
   filter(CollectionYear=="2021")%>%
   filter(`Collection Site`=="Compass Point"|`Collection Site`=="Oasis Cove"|`Collection Site`=="STEER")%>%
@@ -199,6 +200,7 @@ Compare
 
 #too few samples in steer not going to include them
 
+#remade compare dataframe, and plotted again
 Compare<-RHMA%>%
   filter(CollectionYear=="2021")%>%
   filter(`Collection Site`=="Compass Point"|`Collection Site`=="Oasis Cove")%>%
@@ -209,34 +211,38 @@ Compare<-RHMA%>%
 
 Compare
 
-
+#filter so only have compass point
 CompassPt<-RHMA%>%
   filter(CollectionYear=="2021")%>%
   filter(`Collection Site`=="Compass Point")%>%
   select(`Mass (g)`)
 
+#what is the mean mass at compass point, want to add this to the plot because box plots show median
 mean(CompassPt$`Mass (g)`)
 
+#filter oasis cove
 OasisCove<-RHMA%>%
   filter(CollectionYear=="2021")%>%
   filter(`Collection Site`=="Oasis Cove")%>%
   select(`Mass (g)`)
+#mean at oasis cove
 mean(OasisCove$`Mass (g)`)
 
-
+#run T test to see if they are different
 t.test(CompassPt, OasisCove)
 ```
 
 
 
 ```{r}
-
+#look at size of props across different years
 RHMA$CollectionYear<-as.factor(RHMA$CollectionYear)
 
 #remove outlier
 RHMA<-RHMA%>%
   filter(!(`Mass (g)`==1083.00))
 
+#look at compass point
 Site<-RHMA%>%
   filter(`Collection Site`=="Compass Point")%>%
   ggplot(aes(x=CollectionYear, y=`Mass (g)`))+
@@ -245,6 +251,8 @@ Site<-RHMA%>%
   geom_boxplot(width=0.1, color="black", alpha=0.5)
 
 Site
+
+#look at oasis cove
 Site2<-RHMA%>%
   filter(`Collection Site`=="Oasis Cove")%>%
   ggplot(aes(x=CollectionYear, y=`Mass (g)`))+
@@ -253,5 +261,7 @@ Site2<-RHMA%>%
   geom_boxplot(width=0.1, color="black", alpha=0.5)
 
 Site2
+
+look at this
 ```
 
