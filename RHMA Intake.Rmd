@@ -1,0 +1,257 @@
+---
+title: "Red Mangrove Intake"
+output: html_document
+date: "2025-05-13"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(readr)
+
+#load the dataframe
+RHMA<- read_csv("C:/Users/900116901/Desktop/Nursery Intake Processing/Master Nursery Intake Data - RHMA Intake Data.csv")
+
+#uploaded as tibble, changing to df
+RHMA<-as.data.frame(RHMA)
+RHMA$`Mass (g)`<-as.numeric(RHMA$`Mass (g)`)
+RHMA$`Width (mm)`<-as.numeric(RHMA$`Width (mm)`)
+RHMA$`total length (cm)`<-as.numeric(RHMA$`total length (cm)`)
+
+#look a the structure
+str(RHMA)
+
+#look at the number of collection sites
+unique(RHMA$`Collection Site`)
+
+```
+
+[1] "Oasis Cove"        "Compass Pt."       "Compass Point"    
+ [4] "CP"                "Marina"            "AL"               
+ [7] "BB-HB"             "SR_HB"             "PB"               
+[10] "SR"                "AB"                "OC"               
+[13] "SR - MARINA"       "SALT RIVER MARINA" "ALTONA"           
+[16] "SRBB"              "BB"                "MB"               
+[19] "STEER ECOTOURS"    "MAGENS BAY"        "N/A"              
+[22] NA                  "perseverance"      "Perseverance"     
+[25] "Range Cay"         "STEER"             "Annaberg"         
+[28] "Salt River"        "Preserverance"     "Brewers"          
+[31] "Perserverance"     "Vessup"            "Mandahl"          
+[34] "VESSUP"            "Salt River Marine" "COMPASS POINT"    
+[37] "OASIS COVE"        "MDL"               "VESSUP BAY"     
+[40] "VBSP"  
+
+
+
+```{r}
+
+library(tidyverse)
+
+
+#ask around the lab if people can ID these sites, we can add them back in 
+
+#remove unknown sites
+RHMA<-RHMA%>%
+    filter(!(`Collection Site`=="NA"))%>%
+  filter(!(`Collection Site`=="BB-HB"))%>%
+  filter(!(`Collection Site`=="N/A"))%>%
+  filter(!(`Collection Site`=="Marina"))%>%
+  filter(!(`Collection Site`=="MDL"))
+  
+  
+#rename all the collection sites
+RHMA<-RHMA%>%
+  mutate(`Collection Site`=recode(`Collection Site`,
+    "OC"= "Oasis Cove",
+    "OASIS COVE" = "Oasis Cove",
+    "CP"= "Compass Point",
+    "Compass Pt." = "Compass Point",
+    "COMPASS POINT" ="Compass Point",
+    "SR"= "Salt River",
+    "SR - MARINA"= "Salt River",
+    "SALT RIVER MARINA"= "Salt River",
+    "Salt River Marine"= "Salt River",
+    "SR_HB"= "Salt River",
+    "SRBB"= "Salt River",
+    "STEER ECOTOURS"= "STEER",
+    "Range Cay"= "Brewers Bay",
+    "BB"= "Brewers Bay",
+    "Brewers"= "Brewers Bay",
+    "perseverance"= "Perserverace Bay",
+    "Preserverance"= "Perserverace Bay",
+    "Perseverance"= "Perserverace Bay",
+    "PB"= "Perserverace Bay",
+    "Perserverance"= "Perserverace Bay",
+    "VESSUP"= "Vessup Bay",
+    "VBSP" = "Vessup Bay",
+    "Vessup" = "Vessup Bay",
+    "VESSUP BAY"= "Vessup Bay",
+    "AB" = "Annabergh Bay",
+     "Annaberg"  = "Annabergh Bay",
+    "AB" = "Annabergh Bay",
+     "MAGENS BAY" ="Magens Bay",
+    "MB" ="Magens Bay",
+    "AL"="Altona Lagoon",
+    "ALTONA"="Altona Lagoon",
+    "Mandahl" ="Mandahl Bay",
+    ))
+
+
+unique(RHMA$`Collection Site`)
+```
+
+[1] "Oasis Cove"       "Compass Point"    "Altona Lagoon"   
+ [4] "Salt River"       "Perserverace Bay" "Annabergh Bay"   
+ [7] "Brewers Bay"      "Magens Bay"       "STEER"           
+[10] "Perserverance"    "Vessup Bay"       "Mandahl Bay"
+
+
+```{r}
+library(lubridate)
+
+RHMA$`Collection Date`<-mdy(RHMA$`Collection Date`)
+
+unique(RHMA$`Collection Date`)
+
+RHMA<-RHMA%>%
+  filter(!is.na(`Collection Date`))
+
+unique(RHMA$`Collection Date`)
+
+RHMA<-RHMA%>%
+  mutate(CollectionYear=year(`Collection Date`))
+
+unique(RHMA$CollectionYear)
+
+RHMA<-RHMA%>%
+    filter(!(CollectionYear==2002))
+
+YearCount<-RHMA%>%
+  group_by(CollectionYear)%>%
+  summarise(count=n())
+
+YearPlot<-YearCount%>%
+ ggplot(aes(x=CollectionYear, y=count))+
+  geom_col()
+
+YearPlot
+
+str(YearCount)
+YearCount$CollectionYear<-as.factor(YearCount$CollectionYear)
+
+yearcolors<-c("darkolivegreen3", "tan4","darkgreen","tomato4","orange")
+
+YearPlot<-YearCount%>%
+  ggplot(aes(x=CollectionYear,y=count, color=CollectionYear, fill=CollectionYear))+
+  geom_col(position="dodge", width=0.7)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_manual(values=yearcolors)+
+  scale_color_manual(values=yearcolors)+
+  xlab("Collection Year")+
+  ylab("Number of Propagules Planted")
+
+YearPlot
+
+```
+
+
+```{r}
+#look at how many in each site in each year
+
+SiteCount<-RHMA%>%
+  group_by(CollectionYear,`Collection Site`)%>%
+  summarise(count=n())
+
+SiteCount$CollectionYear<-as.factor(SiteCount$CollectionYear)
+
+
+YearPlot<-SiteCount%>%
+  ggplot(aes(x=`Collection Site`,y=count, color=CollectionYear, fill=CollectionYear))+
+  geom_col(position="dodge", width=0.7)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_fill_manual(values=yearcolors)+
+  scale_color_manual(values=yearcolors)+
+  xlab("Collection Site")+
+  ylab("Number of Propagules Planted")
+
+
+YearPlot
+
+```
+
+
+We have only data from all 5 years from compass and oasis so want to compare mass for these two sites
+
+is theere a significant difference in mass of props collected between these two sites in 2021
+```{r}
+
+
+
+Compare<-RHMA%>%
+  filter(CollectionYear=="2021")%>%
+  filter(`Collection Site`=="Compass Point"|`Collection Site`=="Oasis Cove"|`Collection Site`=="STEER")%>%
+  ggplot(aes(x=`Collection Site`, y=`Mass (g)`))+
+  geom_violin()+
+  geom_sina()+
+  geom_boxplot(width=0.1, color="black", alpha=0.5)
+
+Compare
+
+#too few samples in steer not going to include them
+
+Compare<-RHMA%>%
+  filter(CollectionYear=="2021")%>%
+  filter(`Collection Site`=="Compass Point"|`Collection Site`=="Oasis Cove")%>%
+  ggplot(aes(x=`Collection Site`, y=`Mass (g)`))+
+  geom_violin()+
+  geom_sina()+
+  geom_boxplot(width=0.1, color="black", alpha=0.5)
+
+Compare
+
+
+CompassPt<-RHMA%>%
+  filter(CollectionYear=="2021")%>%
+  filter(`Collection Site`=="Compass Point")%>%
+  select(`Mass (g)`)
+
+mean(CompassPt$`Mass (g)`)
+
+OasisCove<-RHMA%>%
+  filter(CollectionYear=="2021")%>%
+  filter(`Collection Site`=="Oasis Cove")%>%
+  select(`Mass (g)`)
+mean(OasisCove$`Mass (g)`)
+
+
+t.test(CompassPt, OasisCove)
+```
+
+
+
+```{r}
+
+RHMA$CollectionYear<-as.factor(RHMA$CollectionYear)
+
+#remove outlier
+RHMA<-RHMA%>%
+  filter(!(`Mass (g)`==1083.00))
+
+Site<-RHMA%>%
+  filter(`Collection Site`=="Compass Point")%>%
+  ggplot(aes(x=CollectionYear, y=`Mass (g)`))+
+  geom_violin()+
+  geom_sina()+
+  geom_boxplot(width=0.1, color="black", alpha=0.5)
+
+Site
+Site2<-RHMA%>%
+  filter(`Collection Site`=="Oasis Cove")%>%
+  ggplot(aes(x=CollectionYear, y=`Mass (g)`))+
+  geom_violin()+
+  geom_sina()+
+  geom_boxplot(width=0.1, color="black", alpha=0.5)
+
+Site2
+```
+
