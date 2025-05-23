@@ -5,6 +5,9 @@ date: "2024-11-14"
 editor_options: 
   chunk_output_type: console
 ---
+
+Test
+
 ```{r}
 #changed a thing
 ```
@@ -87,6 +90,7 @@ AVGE<-AVGE%>%
 #six trees don't have a collected date, but they were planted in 2021, going to change collection year to 2021
 
 AVGE$CollectionYear <- ifelse(is.na(AVGE$CollectionYear), 2021, AVGE$CollectionYear)
+
 #how many props planted each year?
 YearCount<-AVGE%>%
   group_by(CollectionYear)%>%
