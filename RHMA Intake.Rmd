@@ -12,7 +12,7 @@ Test
 library(readr)
 
 #load the dataframe
-RHMA<- read_csv("C:/Users/900116901/Desktop/Nursery Intake Processing/Master Nursery Intake Data - RHMA Intake Data.csv")
+RHMA<- read_csv("Master Nursery Intake Data - RHMA Intake Data.csv")
 
 #uploaded as tibble, changing to df
 RHMA<-as.data.frame(RHMA)
@@ -122,6 +122,10 @@ unique(RHMA$`Collection Date`)
 RHMA<-RHMA%>%
   mutate(CollectionYear=year(`Collection Date`))
 
+#use lubridate function to take the year out of the collection date, so we can group props by year
+RHMA<-RHMA%>%
+  mutate(Month=month(`Collection Date`))
+
 unique(RHMA$CollectionYear)
 
 RHMA<-RHMA%>%
@@ -160,6 +164,8 @@ YearPlot
 
 
 ```{r}
+
+library(ggforce)
 #look at how many in each site in each year
 
 SiteCount<-RHMA%>%
@@ -264,6 +270,168 @@ Site2<-RHMA%>%
 
 Site2
 
-look at this
+#look at this
+```
+
+
+```{r}
+#load Libraries
+library(FSA)#for DunnPost Hoc
+library(rcompanion)#for cldList function
+
+#compass point
+
+#looking at number planted each year
+NumCollected<-RHMA%>%
+   filter(`Collection Site`=="Compass Point")%>%
+  group_by(CollectionYear)%>%
+  summarise("numplanted"=n())
+
+#only found 12 in 2022, filtering to remove 2022 
+
+RHMA<-RHMA%>%
+  filter(!(CollectionYear=="2022"& `Collection Site`=="Compass Point"))
+
+
+#plot agian
+
+Site<-RHMA%>%
+  filter(`Collection Site`=="Compass Point")%>%
+  ggplot(aes(x=CollectionYear, y=`Mass (g)`))+
+  geom_violin()+
+  geom_sina()+
+  geom_boxplot(width=0.1, color="black", alpha=0.5)
+
+Site
+
+#filter dataframe
+CP<-RHMA%>%
+  filter(`Collection Site`=="Compass Point")%>%
+  filter(!(CollectionYear=="2022"))
+
+#ready to run ANOVA!
+#check assumptions
+
+#equal variance
+
+#equal variance, bartlet test
+bartlett.test(CP$`Mass (g)`~CP$CollectionYear, CP)
+
+#Bartlett test of homogeneity of variances
+
+#data:  CP$`Mass (g)` by CP$CollectionYear
+#Bartlett's K-squared = 153.42, df = 3, p-value < 2.2e-16
+
+#dont meet assumptions run nonparametric
+
+kruskal.test(CP$`Mass (g)`~CP$CollectionYear, data=CP)
+
+
+#Kruskal-Wallis rank sum test
+
+#data:  CP$`Mass (g)` by CP$CollectionYear
+#Kruskal-Wallis chi-squared = 100.22, df = 3, p-value < 2.2e-16
+
+
+CPDunn=dunnTest(CP$`Mass (g)` ~ CP$CollectionYear, data = CP)
+CPDunn
+
+#   Comparison         Z      P.unadj        P.adj
+#1 2021 - 2023 1.9128729 5.576432e-02 1.115286e-01
+#2 2021 - 2024 2.3743149 1.758155e-02 5.274464e-02
+#3 2023 - 2024 0.4726529 6.364609e-01 6.364609e-01
+#4 2021 - 2025 9.0027781 2.200769e-19 1.320461e-18
+#5 2023 - 2025 6.7833735 1.174016e-11 5.870078e-11
+#6 2024 - 2025 6.1874409 6.114876e-10 2.445950e-09
+
+
+Lab1 = CPDunn$res
+
+cldList(comparison = Lab1$Comparison,
+        p.value    = Lab1$P.adj,
+        threshold  = 0.05)
+
+
+#  Group Letter MonoLetter
+#1   221      a         a 
+#2   223      a         a 
+#3   224      a         a 
+#4   225      b          b
+
+
+
+
+#look at oasis cove
+
+
+Site1<-RHMA%>%
+  filter(`Collection Site`=="Oasis Cove")%>%
+  ggplot(aes(x=CollectionYear, y=`Mass (g)`))+
+  geom_violin()+
+  geom_sina()+
+  geom_boxplot(width=0.1, color="black", alpha=0.5)
+
+Site1
+
+view(Site1)
+
+NumCollected<-RHMA%>%
+   filter(`Collection Site`=="Oasis Cove")%>%
+  group_by(CollectionYear)%>%
+  summarise("numplanted"=n())
+
+OA<-RHMA%>%
+  filter(`Collection Site`=="Oasis Cove")
+
+bartlett.test(OA$`Mass (g)`~ OA$CollectionYear, OA)
+
+kruskal.test(OA$`Mass (g)`~OA$CollectionYear, data=OA)
+
+#Kruskal-Wallis rank sum test
+
+#data:  OA$`Mass (g)` by OA$CollectionYear
+#Kruskal-Wallis chi-squared = 284.45, df = 4, p-value < 2.2e-16
+
+CPDunn=dunnTest(OA$`Mass (g)` ~ OA$CollectionYear, data = OA)
+CPDunn
+
+#Comparison           Z      P.unadj        P.adj
+#1  2021 - 2022  -4.5741684 4.781151e-06 1.912460e-05
+#2  2021 - 2023  -5.2299810 1.695274e-07 8.476372e-07
+#3  2022 - 2023   0.6798302 4.966120e-01 4.966120e-01
+#4  2021 - 2024 -14.0243711 1.105882e-44 1.105882e-43
+#5  2022 - 2024  -4.5363343 5.724041e-06 1.717212e-05
+#6  2023 - 2024  -7.3709041 1.694748e-13 1.355798e-12
+#7  2021 - 2025   3.9670956 7.275380e-05 1.455076e-04
+#8  2022 - 2025   6.7891974 1.127591e-11 6.765544e-11
+#9  2023 - 2025   7.2684395 3.636639e-13 2.545647e-12
+#10 2024 - 2025  12.4189163 2.063376e-35 1.857038e-34
+
+
+Lab2 = CPDunn$res
+
+cldList(comparison = Lab2$Comparison,
+        p.value    = Lab2$P.adj,
+        threshold  = 0.05)
+ #Group Letter MonoLetter
+#1   221      a       a   
+#2   222      b        b  
+#3   223      b        b  
+#4   224      c         c 
+#5   225      d          d
+```
+
+
+```{r}
+
+#look at number collected in different months
+
+MonthYearCP<-RHMA%>%
+  filter(`Collection Site`=="Compass Point")%>%
+  group_by(CollectionYear, Month)%>%
+  summarise("NumPlanted"==n())
+
+MonthYearCP$`"NumPlanted" == n()`<-as.numeric(MonthYearCP$`"NumPlanted" == n()`)
+
 ```
 
