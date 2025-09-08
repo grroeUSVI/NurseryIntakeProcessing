@@ -300,7 +300,8 @@ Site<-RHMA%>%
   ggplot(aes(x=CollectionYear, y=`Mass (g)`))+
   geom_violin()+
   geom_sina()+
-  geom_boxplot(width=0.1, color="black", alpha=0.5)
+  geom_boxplot(width=0.1, color="black", alpha=0.5)+
+  ggtitle("Compass Point")
 
 Site
 
@@ -369,7 +370,9 @@ Site1<-RHMA%>%
   ggplot(aes(x=CollectionYear, y=`Mass (g)`))+
   geom_violin()+
   geom_sina()+
-  geom_boxplot(width=0.1, color="black", alpha=0.5)
+  geom_boxplot(width=0.1, color="black", alpha=0.5)+
+  ggtitle("Oasis Cove")+
+  ylab("Mass of Propagule (g)")#manually set the y axis 
 
 Site1
 
@@ -429,9 +432,14 @@ cldList(comparison = Lab2$Comparison,
 MonthYearCP<-RHMA%>%
   filter(`Collection Site`=="Compass Point")%>%
   group_by(CollectionYear, Month)%>%
-  summarise("NumPlanted"==n())
+  summarise("NumPlanted"=n())
 
-MonthYearCP$`"NumPlanted" == n()`<-as.numeric(MonthYearCP$`"NumPlanted" == n()`)
+MonthYearOC<-RHMA%>%
+  filter(`Collection Site`=="Oasis Cove")%>%
+  group_by(CollectionYear, Month)%>%
+  summarise("NumPlanted"=n())
+
+
 
 ```
 
