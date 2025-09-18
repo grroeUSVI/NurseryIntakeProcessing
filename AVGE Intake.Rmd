@@ -6,12 +6,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-Test
-
-```{r}
-#changed a thing
-```
-
 
 ```{r setup, include=FALSE}
 library(tidyverse)
@@ -259,6 +253,8 @@ f2021width
 
 #Length 2021
 f2021length<-PropViolinPlot(AVGEmerged,2021,"Propagule Length(cm)","Propagule Length Across Sites in 2021","Propagule Length (cm)")
+
+f2021length
 
 ```
 
